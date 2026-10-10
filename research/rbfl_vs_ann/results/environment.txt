@@ -1,0 +1,8 @@
+UTC: 2026-10-10 18:42:17
+g++ (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0
+AMD Ryzen 7 5700U with Radeon Graphics
+Flags: -std=c++17 -O3 -march=native -Wall -Wextra -Wpedantic
+BFL commit: 53c2f46
+RBFL seeds: 1..5
+Historical seeds: 1..20
+Hardware instructions: unavailable (perf tool/counters inaccessible)
