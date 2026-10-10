@@ -11,11 +11,11 @@ SEEDS="${1:-5}"
 HISTORICAL_SEEDS="${2:-20}"
 
 if [[ ! "$SEEDS" =~ ^[1-9][0-9]*$ || ! "$HISTORICAL_SEEDS" =~ ^[1-9][0-9]*$ ]]; then
-    printf 'Uso: bash scripts/reproduce.sh [semillas >= 1] [semillas_históricas >= 20]\n' >&2
+    printf 'Usage: bash scripts/reproduce.sh [seeds >= 1] [historical_seeds >= 20]\n' >&2
     exit 2
 fi
 if (( HISTORICAL_SEEDS < 20 )); then
-    printf 'El ejecutable histórico requiere al menos 20 semillas.\n' >&2
+    printf 'The historical executable requires at least 20 seeds.\n' >&2
     exit 2
 fi
 git -C "$BFL_REPO" cat-file -e "${COMMIT}^{commit}"
@@ -59,4 +59,4 @@ python3 "$PROJECT/scripts/summarize.py" "$STAGED"
 } > "$STAGED/environment.txt"
 
 cp "$STAGED"/*.csv "$STAGED/environment.txt" "$RESULT_DIR/"
-printf 'Resultados escritos en %s\n' "$RESULT_DIR"
+printf 'Results written to %s\n' "$RESULT_DIR"

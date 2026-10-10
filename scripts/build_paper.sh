@@ -6,11 +6,11 @@ if [[ -z "$TECTONIC_BIN" && -x /tmp/bfl-tectonic-tool/tectonic ]]; then
   TECTONIC_BIN=/tmp/bfl-tectonic-tool/tectonic
 fi
 if [[ -z "$TECTONIC_BIN" ]]; then
-  printf 'Tectonic no está disponible; definí TECTONIC=/ruta/al/binario.\n' >&2
+  printf 'Tectonic is unavailable; set TECTONIC=/path/to/binary.\n' >&2
   exit 1
 fi
 OUT_DIR="${1:-$PROJECT}"
 mkdir -p "$OUT_DIR"
 XDG_CACHE_HOME="${XDG_CACHE_HOME:-/tmp/bfl-tectonic-cache}" \
   "$TECTONIC_BIN" --keep-logs --outdir "$OUT_DIR" "$PROJECT/PAPER.tex"
-printf 'PDF generado: %s/PAPER.pdf\n' "$OUT_DIR"
+printf 'PDF generated: %s/PAPER.pdf\n' "$OUT_DIR"

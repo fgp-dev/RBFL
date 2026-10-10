@@ -1,56 +1,60 @@
-# RBFL frente a BFL y redes neuronales
+# RBFL versus BFL and neural networks
 
-Experimento reproducible en C++ sobre una red recurrente de MUX booleanos entrenada con un `argmin` lexicográfico. El [paper](PAPER.pdf), su [fuente LaTeX](PAPER.tex) y el [informe técnico](REPORT.md) documentan la arquitectura, el protocolo y los límites de las conclusiones.
+A reproducible C++ experiment with a recurrent network of Boolean MUX units trained by a lexicographic `argmin`. The [paper](PAPER.pdf), its [LaTeX source](PAPER.tex), and the [technical report](REPORT.md) describe the architecture, protocol, and limits of the conclusions.
 
-## Resultado principal
+## Main result
 
-**`rbfl_used_m_trainable_feedback`** es la variante RBFL ganadora **en la tarea temporal de paridad acumulativa**. Aprende rutas booleanas para `USED_M` y conserva el estado Q entre pasos. En cinco semillas alcanzó 100% de accuracy por bit y por secuencia tanto en longitudes no vistas como en el test con distribución desplazada.
+**`rbfl_used_m_trainable_feedback`** is the winning RBFL variant **on the temporal cumulative parity task**. It learns Boolean routes for `USED_M` and retains Q state between steps. Across five seeds, it reached 100% bit and exact sequence accuracy on both unseen lengths and the shifted distribution test.
 
-| Paridad, longitudes nuevas | Accuracy por bit | Accuracy por secuencia | Inferencia |
+| Parity, unseen lengths | Bit accuracy | Exact sequence accuracy | Inference |
 |---|---:|---:|---:|
-| RBFL, `USED_M` entrenable y realimentación | **100,00%** | **100,00%** | 31,88 ns/paso |
-| Elman RNN, ocho unidades | 81,08% ± 19,31% | 54,75% | 276,51 ns/paso |
-| RBFL, `USED_M` entrenable sin realimentación | 54,92% ± 1,61% | 0,25% | 31,22 ns/paso |
+| RBFL, trainable `USED_M` with feedback | **100.00%** | **100.00%** | 31.88 ns/step |
+| Elman RNN, eight units | 81.08% ± 19.31% | 54.75% | 276.51 ns/step |
+| RBFL, trainable `USED_M` without feedback | 54.92% ± 1.61% | 0.25% | 31.22 ns/step |
 
-La victoria es **específica de esta regla temporal sintética**. En la tarea estática histórica, el control RBFL con `USED_M=1` obtuvo 73,44% en test, frente a 90,00% de BFL binary-global y 99,29% de la ANN de 16 unidades. Ninguna prueba aquí demuestra superioridad general de RBFL. Los modelos tampoco tienen presupuestos iguales de parámetros o entrenamiento.
+This win is **specific to this synthetic temporal rule**. On the historical static task, the RBFL control with `USED_M=1` reached 73.44% test accuracy, compared with 90.00% for binary-global BFL and 99.29% for the 16-unit ANN. These tests do not establish general superiority for RBFL. The models also differ in their parameter and training budgets.
 
-Los IDs del benchmark indican la configuración de cada variante:
+The benchmark IDs describe each variant's configuration:
 
-| ID | Configuración |
+| ID | Configuration |
 |---|---|
-| `rbfl_used_m_trainable_feedback` | Ganadora en paridad: `USED_M` entrenable, Q persistente. |
-| `rbfl_used_m_fixed1_feedback` | Control: `USED_M=1`, Q persistente. |
-| `rbfl_used_m_trainable_no_feedback` | Ablación: `USED_M` entrenable, Q reiniciado cada paso. |
+| `rbfl_used_m_trainable_feedback` | Parity winner: trainable `USED_M`, persistent Q. |
+| `rbfl_used_m_fixed1_feedback` | Control: `USED_M=1`, persistent Q. |
+| `rbfl_used_m_trainable_no_feedback` | Ablation: trainable `USED_M`, Q reset at every step. |
 
-Las demás ablaciones se identifican en [ablation.csv](results/ablation.csv). Los IDs se aclararon después de medir. Las particiones inexistentes se indican como `NA` en los CSV; los valores medidos se conservaron.
+The other ablations are listed in [ablation.csv](results/ablation.csv). The IDs were clarified after measurement. Missing splits are marked `NA` in the CSV files; measured values were retained.
 
-## Reproducir
+## Reproduce
 
-Se necesitan Git, `g++` compatible con C++17 y Python 3. Desde este directorio:
+You need Git, a C++17-compatible `g++`, and Python 3. From this directory, run:
 
 ```bash
 bash scripts/reproduce.sh 5 20
 ```
 
-El primer argumento indica semillas para la comparación nueva; el segundo, semillas para el ejecutable histórico, que requiere al menos 20. El script extrae el commit BFL `53c2f46` con `git archive`, compila el código histórico **sin modificarlo**, ejecuta las pruebas de RBFL y genera los CSV. Si el proyecto está fuera del checkout BFL, definí `BFL_REPO=/ruta/al/BFL`.
+The first argument sets the seed count for the new comparison; the second sets the seed count for the historical executable and must be at least 20. The script extracts BFL commit `53c2f46` with `git archive`, compiles the historical code **unchanged**, runs the RBFL tests, and generates the CSV files. If this project is outside the BFL checkout, set `BFL_REPO=/path/to/BFL`.
 
-| Archivo | Contenido |
+| File | Contents |
 |---|---|
-| [benchmark.csv](results/benchmark.csv) | Cada modelo, tarea y semilla con accuracies y costos. |
-| [summary.csv](results/summary.csv) | Media y desviación estándar poblacional. |
-| [ablation.csv](results/ablation.csv) | Todas las variantes RBFL de la tarea temporal. |
-| [training_trace.csv](results/training_trace.csv) | Error antes y después de cada iteración greedy. |
-| [historical_reproduction.csv](results/historical_reproduction.csv) | Ejecución sin cambios del benchmark BFL vs ANN archivado. |
-| [environment.txt](results/environment.txt) | Compilador, CPU y flags del run guardado. |
+| [benchmark.csv](results/benchmark.csv) | Accuracy and cost for each model, task, and seed. |
+| [summary.csv](results/summary.csv) | Means and population standard deviations. |
+| [ablation.csv](results/ablation.csv) | All RBFL variants for the temporal task. |
+| [training_trace.csv](results/training_trace.csv) | Errors before and after each greedy iteration. |
+| [historical_reproduction.csv](results/historical_reproduction.csv) | Unchanged run of the archived BFL versus ANN benchmark. |
+| [environment.txt](results/environment.txt) | Compiler, CPU, and flags for the saved run. |
 
-`NA` significa que esa partición no existe para la tarea: el benchmark histórico no tiene validación y las tareas estáticas no tienen test con distribución desplazada. Un cero en una partición existente sí es una medición.
+`NA` means that a split does not exist for that task: the historical benchmark has no validation split, and the static tasks have no shifted distribution test. A zero in an existing split is a measurement.
 
-El test temporal final proviene de un flujo aleatorio separado de train y validación. Las secuencias de train miden 4–8 pasos; las de test, 9–12. La distribución desplazada cambia la probabilidad del bit relevante de 0,5 a 0,2. Las particiones estáticas son 600/424 y 600/200/224 sobre los 1024 vectores binarios distintos de diez bits. Las cifras de tiempo pueden variar entre máquinas y ejecuciones.
+The final temporal test uses a random stream separate from training and validation. Training sequences have 4–8 steps; test sequences have 9–12. The shifted distribution changes the relevant bit's probability from 0.5 to 0.2. The static splits are 600/424 and 600/200/224 over all 1,024 distinct ten-bit vectors. Timing figures can vary across machines and runs.
 
-La compilación usa `-std=c++17 -O3 -march=native -Wall -Wextra -Wpedantic`. También hay un [proyecto CMake](CMakeLists.txt); requiere pasar `-DBFL_SNAPSHOT=/ruta/al/snapshot` después de extraer el commit. Para regenerar el PDF con Tectonic:
+Compilation uses `-std=c++17 -O3 -march=native -Wall -Wextra -Wpedantic`. A [CMake project](CMakeLists.txt) is also available; after extracting the commit, pass `-DBFL_SNAPSHOT=/path/to/snapshot`. To regenerate the PDF with Tectonic:
 
 ```bash
 bash scripts/build_paper.sh
 ```
 
-`REPORT.md` describe las ecuaciones exactas, la procedencia de cada baseline y las limitaciones de memoria y medición.
+[REPORT.md](REPORT.md) gives the exact equations, the provenance of each baseline, and the memory and measurement limitations.
+
+## License
+
+Copyright 2026 Facundo Gomez Prates. This repository is licensed under the [Apache License 2.0](LICENSE).

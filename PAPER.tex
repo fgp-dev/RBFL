@@ -1,6 +1,6 @@
 \documentclass[10pt,a4paper]{article}
 \usepackage[T1]{fontenc}
-\usepackage[spanish]{babel}
+\usepackage[english]{babel}
 \usepackage{lmodern}
 \usepackage{geometry}
 \usepackage{booktabs}
@@ -15,36 +15,36 @@
 \newcommand{\UG}{\mathrm{USED}_{G}}
 \newcommand{\CE}{\mathrm{CHANGE}_{\mathrm{ERROR}}}
 \newenvironment{fixedtable}[1]{\par\medskip\noindent\begin{minipage}{\linewidth}\centering\small\textbf{#1}\par\smallskip}{\end{minipage}\par\medskip}
-\title{RBFL con habilitación entrenable y realimentación\\
-\large Una victoria medida en paridad acumulativa y sus límites}
-\author{Estudio reproducible del repositorio BFL}
-\date{10 de octubre de 2026}
+\title{RBFL with Trainable Gating and Feedback\\
+\large A Measured Win on Cumulative Parity and Its Limits}
+\author{Reproducible study of the BFL repository}
+\date{October 10, 2026}
 \begin{document}
 \maketitle
 
 \begin{abstract}
-Presentamos una red recurrente de ocho MUX booleanos con conexiones discretas, estado registrado y una ruta entrenable de habilitación por unidad. Su entrenamiento conserva el criterio \emph{argmin} lexicográfico del BFL binary-global: minimiza primero los errores totales, luego los errores nuevos en predicciones antes correctas y finalmente el número de bits de configuración cambiados. En cinco semillas de una tarea de paridad acumulativa, la variante \texttt{rbfl\_used\_m\_trainable\_feedback} alcanzó 100\% de exactitud por bit y por secuencia en 400 secuencias de longitudes no vistas y otro 100\% en 400 secuencias con distribución desplazada. La RNN de Elman de control alcanzó 81,08\% $\pm$ 19,31\% por bit en el test de longitudes nuevas. La ablación con habilitación entrenable pero sin persistencia temporal alcanzó 54,92\% $\pm$ 1,61\%. El éxito es específico de esta construcción: en la tarea estática histórica, la variante RBFL evaluada obtuvo 73,44\%, por debajo del 90,00\% del BFL binary-global y del 99,29\% de la MLP. Publicamos código, particiones deterministas, resultados por semilla y límites de la comparación.
+We present a recurrent network of eight Boolean MUX units with discrete connections, registered state, and a trainable enable route for each unit. Training retains the lexicographic \emph{argmin} criterion of binary-global BFL: it minimizes total errors first, then new errors on previously correct predictions, and finally the number of changed configuration bits. Across five seeds of a cumulative parity task, the \texttt{rbfl\_used\_m\_trainable\_feedback} variant reached 100\% bit and exact sequence accuracy on 400 sequences of unseen lengths and another 100\% on 400 sequences with a shifted distribution. The Elman RNN control reached 81.08\% $\pm$ 19.31\% bit accuracy on the unseen-length test. The ablation with trainable gating but no temporal persistence reached 54.92\% $\pm$ 1.61\%. The success is specific to this construction: on the historical static task, the evaluated RBFL variant reached 73.44\%, below the 90.00\% of binary-global BFL and the 99.29\% of the MLP. We provide code, deterministic splits, per-seed results, and the limits of this comparison.
 \end{abstract}
 
-\section{Alcance y procedencia}
-El resultado de referencia del BFL binary-global es 90,3066\% de exactitud media de test en 50 semillas, archivado en el commit \texttt{53c2f46}. Recompilamos sin cambios el benchmark de ese commit: en 20 semillas produjo 90,6132\% $\pm$ 1,6145\%. El modelo original usa 32 rutas fijadas por cinco bits de entrada, 16 características booleanas y una mayoría de características activas. Su entrenamiento enumera propuestas de hasta tres flips, las enmascara con las características \texttt{USED} del ejemplo actual y evalúa el grupo completo de entrenamiento correspondiente a esa ruta. Compara $(\mathrm{ERR},\mathrm{FORGET},\mathrm{CHANGE\_COST})$ lexicográficamente. En ese código, \texttt{CHANGE} designa la propuesta de configuración; no es la máscara de error.
+\section{Scope and provenance}
+The reference result for binary-global BFL is 90.3066\% mean test accuracy across 50 seeds, archived in commit \texttt{53c2f46}. We recompiled that commit's benchmark unchanged: across 20 seeds, it produced 90.6132\% $\pm$ 1.6145\%. The original model uses 32 routes selected by five input bits, 16 Boolean features, and a majority vote of active features. Training enumerates proposals of up to three bit flips, masks them with the current example's \texttt{USED} features, and evaluates the entire training group for that route. It compares $(\mathrm{ERR},\mathrm{FORGET},\mathrm{CHANGE\_COST})$ lexicographically. In that code, \texttt{CHANGE} denotes a configuration proposal; it is not the error mask.
 
-El objetivo de este trabajo es evaluar una arquitectura distinta, con memoria temporal explícita. Por ello, \emph{variante ganadora} significa exclusivamente la mejor RBFL medida en la tarea temporal de paridad de este protocolo; no implica una superioridad en tareas estáticas ni en datos reales. Los identificadores de las filas son:
+This study evaluates a different architecture with explicit temporal memory. Accordingly, \emph{winning variant} means only the best RBFL measured on the temporal parity task under this protocol; it does not imply superiority on static tasks or real data. The row identifiers are:
 \begin{itemize}
-\item \texttt{rbfl\_used\_m\_trainable\_feedback}: variante ganadora en paridad;
-\item \texttt{rbfl\_used\_m\_fixed1\_feedback}: control con habilitación fija;
-\item \texttt{rbfl\_used\_m\_trainable\_no\_feedback}: ablación de memoria.
+\item \texttt{rbfl\_used\_m\_trainable\_feedback}: parity winner;
+\item \texttt{rbfl\_used\_m\_fixed1\_feedback}: fixed-gate control;
+\item \texttt{rbfl\_used\_m\_trainable\_no\_feedback}: memory ablation.
 \end{itemize}
 
-\section{Arquitectura RBFL}
-El estado tiene ocho bits, $H_t=(Q_{1,t},\ldots,Q_{8,t})$. Cada entrada $A_{i,t}$ y $B_{i,t}$ selecciona una de veinte fuentes: las constantes 0 y 1, los diez bits de $X_t$ o los ocho bits de $H_t$. Todas las unidades leen el mismo $H_t$ y luego se escribe $H_{t+1}$, sin ciclos combinacionales. Para cada MUX,
+\section{RBFL architecture}
+The state has eight bits, $H_t=(Q_{1,t},\ldots,Q_{8,t})$. Each $A_{i,t}$ and $B_{i,t}$ input selects one of twenty sources: constants 0 and 1, the ten bits of $X_t$, or the eight bits of $H_t$. Every unit reads the same $H_t$ before $H_{t+1}$ is written, so there are no combinational cycles. For each MUX,
 \begin{align}
 M_{i,t} &= (A_{i,t}\land\neg Q_{i,t})\lor(B_{i,t}\land Q_{i,t}), \\
 Q_{i,t+1} &= Q_{i,t}\oplus\bigl[\UM{}_{,i,t}\land(Q_{i,t}\oplus M_{i,t})\bigr].
 \end{align}
-En la variante ganadora, $\UM{}_{,i,t}$ también selecciona una fuente booleana entre esas veinte. Su valor no depende del target en inferencia. La salida es un bit seleccionado de $H_{t+1}$, opcionalmente invertido. El estado inicial es cero y se reinicia entre secuencias, conservándose entre pasos de una misma secuencia.
+In the winning variant, $\UM{}_{,i,t}$ also selects a Boolean source from those twenty choices. Its value does not depend on the target during inference. The output is a selected bit of $H_{t+1}$, optionally inverted. The initial state is zero and resets between sequences, while persisting across steps within a sequence.
 
-\begin{fixedtable}{Tabla 1. MUX retroalimentado antes de la habilitación.}
+\begin{fixedtable}{Table 1. Feedback MUX before gating.}
 \begin{tabular}{ccc@{\hspace{1cm}}ccc}
 \toprule
 $A$ & $B$ & $M$ & $A$ & $B$ & $M$ \\
@@ -55,95 +55,95 @@ $A$ & $B$ & $M$ & $A$ & $B$ & $M$ \\
 \end{tabular}
 \end{fixedtable}
 
-La máscara de uso registra $U^A_{i,t}=\UM{}_{,i,t}\land\neg Q_{i,t}$ y $U^B_{i,t}=\UM{}_{,i,t}\land Q_{i,t}$. Se agregan estas observaciones en $\UG$ sobre las trayectorias de entrenamiento. El buscador evalúa también rewires de rutas inactivas: de otro modo, una ruta nunca usada no podría descubrirse. Cada índice de fuente ocupa cinco bits; el costo de un rewire es la distancia de Hamming entre el índice viejo y el nuevo. La variante ganadora tiene 124 bits de configuración entrenables y ocupa 44 bytes como objeto C++ medido.
+The usage mask records $U^A_{i,t}=\UM{}_{,i,t}\land\neg Q_{i,t}$ and $U^B_{i,t}=\UM{}_{,i,t}\land Q_{i,t}$. These observations are aggregated into $\UG$ across training trajectories. The search also evaluates rewires of inactive routes; otherwise, a never-used route could not be discovered. Each source index occupies five bits, and a rewire's cost is the Hamming distance between the old and new indices. The winning variant has 124 trainable configuration bits and occupies 44 bytes as a measured C++ object.
 
-\section{Greedy lexicográfico}
-Definimos $\CE=P_{\theta}(X)\oplus Y$, separado de la propuesta de cambio de parámetros $\Delta$. Para cada candidato se reinicia $H_0$, se reproduce \emph{toda} la colección de secuencias de entrenamiento y se obtiene $E_\Delta=Y\oplus P_{\theta_\Delta}(X)$. Con $E_0=Y\oplus P_\theta(X)$, el criterio implementado es
+\section{Lexicographic greedy search}
+We define $\CE=P_{\theta}(X)\oplus Y$, separately from the proposed parameter change $\Delta$. Each candidate resets $H_0$, replays the \emph{entire} collection of training sequences, and obtains $E_\Delta=Y\oplus P_{\theta_\Delta}(X)$. With $E_0=Y\oplus P_\theta(X)$, the implemented criterion is
 \begin{equation}
 \Delta^*=\operatorname*{arg\,min}^{\mathrm{lex}}_{\Delta}
 \left(\sum E_\Delta,\;\sum(\neg E_0\land E_\Delta),\;
 \operatorname{popcount}(\theta\oplus\theta_\Delta)\right).
 \end{equation}
-El modelo actual se compara con la tupla $(\sum E_0,0,0)$; una propuesta se conserva solo si mejora esa tupla y, en caso contrario, se revierte. No hay gradientes, SGD, Adam ni pesos flotantes dentro de RBFL. La búsqueda prueba un rewire completo o una modificación de salida o inicialización por candidato, con hasta cuatro iteraciones greedy. Esta vecindad es distinta de los flips de hasta tres características del BFL histórico. \texttt{FORGET} solo desempata después de igualdad en errores totales.
+The current model is compared with the tuple $(\sum E_0,0,0)$; a proposal is retained only if it improves that tuple, and is otherwise reverted. RBFL uses no gradients, SGD, Adam, or floating-point weights. The search tries one complete rewire or one output or initialization edit per candidate, for up to four greedy iterations. This neighborhood differs from the historical BFL's flips of up to three feature bits. \texttt{FORGET} only breaks ties after total errors are equal.
 
-\section{Protocolo experimental}
-El benchmark estático histórico contiene los 1024 vectores binarios distintos de diez bits, barajados con \texttt{std::mt19937(seed)} y divididos en 600 de entrenamiento y 424 de test. Una segunda partición del mismo dominio reserva 600/200/224 para entrenamiento/validación/test. Se conservó el BFL binary-global del commit histórico y una MLP de 16 unidades ocultas con 193 parámetros \texttt{float64}, 500 épocas de Adam y tasa 0,03. La RNN de Elman de control tiene ocho unidades ocultas y 161 parámetros \texttt{float64}; usa BPTT completo, Adam, 500 épocas y tasa 0,01.
+\section{Experimental protocol}
+The historical static benchmark contains all 1,024 distinct ten-bit vectors, shuffled with \texttt{std::mt19937(seed)} and split into 600 training and 424 test examples. A second split of the same domain reserves 600/200/224 for training, validation, and test. We retain binary-global BFL from the historical commit and a 16-hidden-unit MLP with 193 \texttt{float64} parameters, 500 Adam epochs, and a learning rate of 0.03. The Elman RNN control has eight hidden units and 161 \texttt{float64} parameters; it uses full BPTT, Adam, 500 epochs, and a learning rate of 0.01.
 
-En la tarea temporal, el bit relevante $x_{t,0}$ es Bernoulli justo y los otros nueve bits son distractores. El target es $y_t=\bigoplus_{s=0}^{t}x_{s,0}$. Por semilla se generan 160 secuencias de entrenamiento y 40 de validación, de longitudes 4--8. El test final tiene 80 secuencias de longitudes 9--12 y otro test independiente de 80 secuencias de esas longitudes con $\Pr(x_{t,0}=1)=0,2$. Son cinco semillas. El test temporal final usa un flujo aleatorio separado, fijado después de la exploración preliminar y antes de obtener estas cifras. No se optimizan parámetros RBFL con datos del test.
+In the temporal task, the relevant bit $x_{t,0}$ is a fair Bernoulli variable and the other nine bits are distractors. The target is $y_t=\bigoplus_{s=0}^{t}x_{s,0}$. Each seed generates 160 training and 40 validation sequences of lengths 4--8. The final test contains 80 sequences of lengths 9--12 and a separate shifted test of 80 sequences of those lengths with $\Pr(x_{t,0}=1)=0.2$. There are five seeds. The final temporal test uses a separate random stream fixed after preliminary exploration and before these figures were obtained. RBFL parameters are not optimized on test data.
 
-Las métricas de inferencia excluyen lectura y tokenización: se hacen 10\,000 llamadas de warmup y cinco lotes de 100\,000 llamadas, cada una para una secuencia completa. Los nanosegundos por paso dividen el tiempo por longitud media. La memoria persistente es el objeto del modelo; la memoria temporal es una cota inferior de los datos de inferencia, sin metadatos del asignador. Las mediciones usan \texttt{g++ 13.3}, \texttt{-O3 -march=native}, en AMD Ryzen 7 5700U. No había contadores de instrucciones CPU accesibles.
+Inference metrics exclude reading and tokenization: they use 10,000 warmup calls and five batches of 100,000 calls, each for a complete sequence. Nanoseconds per step divide the time by mean sequence length. Persistent memory is the model object; temporary memory is a lower bound for inference data, excluding allocator metadata. Measurements use \texttt{g++ 13.3} with \texttt{-O3 -march=native} on an AMD Ryzen 7 5700U. CPU instruction counters were unavailable.
 
-\section{Resultados}
-\begin{fixedtable}{Tabla 2. Tarea estática histórica, media de cinco semillas; RBFL con $\UM=1$.}
+\section{Results}
+\begin{fixedtable}{Table 2. Historical static task, five-seed mean; RBFL with $\UM=1$.}
 \begin{tabular}{lrrrr}
 \toprule
-Modelo & Train & Test $\pm$ DE & Entrenamiento (ms) & Inferencia (ns/paso) \\
+Model & Train & Test $\pm$ SD & Training (ms) & Inference (ns/step) \\
 \midrule
-BFL binary-global & 96,13\% & 90,00\% $\pm$ 1,82 & 242,19 & 14,13 \\
-RBFL, $\UM=1$ & 76,27\% & 73,44\% $\pm$ 1,19 & 18,88 & 45,78 \\
-MLP, 16 ocultas & 100,00\% & 99,29\% $\pm$ 0,47 & 160,65 & 425,32 \\
-RNN de Elman, 8 ocultas & 99,83\% & 97,31\% $\pm$ 1,40 & 110,40 & 347,15 \\
+Binary-global BFL & 96.13\% & 90.00\% $\pm$ 1.82 & 242.19 & 14.13 \\
+RBFL, $\UM=1$ & 76.27\% & 73.44\% $\pm$ 1.19 & 18.88 & 45.78 \\
+MLP, 16 hidden units & 100.00\% & 99.29\% $\pm$ 0.47 & 160.65 & 425.32 \\
+Elman RNN, 8 hidden units & 99.83\% & 97.31\% $\pm$ 1.40 & 110.40 & 347.15 \\
 \bottomrule
 \end{tabular}
 \end{fixedtable}
 
-La partición estática 600/200/224 confirma el resultado negativo: test 90,63\% para BFL, 73,39\% para RBFL con $\UM=1$, 99,38\% para la MLP y 97,23\% para la RNN. Por tanto, el resultado temporal favorable no puede extrapolarse a una mejora general frente al BFL original.
+The 600/200/224 static split confirms the negative result: test accuracy is 90.63\% for BFL, 73.39\% for RBFL with $\UM=1$, 99.38\% for the MLP, and 97.23\% for the RNN. The favorable temporal result therefore cannot be extrapolated to a general improvement over the original BFL.
 
-\begin{fixedtable}{Tabla 3. Paridad acumulativa, media de cinco semillas en longitudes nuevas.}
+\begin{fixedtable}{Table 3. Cumulative parity, five-seed mean on unseen lengths.}
 \setlength{\tabcolsep}{3pt}
 \begin{tabular}{@{}lrrrr@{}}
 \toprule
-Modelo & Test bit $\pm$ DE & Exacto & Dist. nueva & Entren. ms \\
+Model & Test bit $\pm$ SD & Exact & Shifted & Train (ms) \\
 \midrule
-MLP sin memoria & 50,56\% $\pm$ 2,23 & 0,25\% & 52,04\% & 224,89 \\
-RNN de Elman & 81,08\% $\pm$ 19,31 & 54,75\% & 80,79\% & 148,85 \\
-RBFL, $\UM=1$ & 58,82\% $\pm$ 0,96 & 8,75\% & 64,94\% & 38,08 \\
-\textbf{RBFL, $\UM$ aprend. + memoria} & \textbf{100,00\% $\pm$ 0,00} & \textbf{100,00\%} & \textbf{100,00\%} & 57,37 \\
-RBFL, $\UM$ aprend., sin memoria & 54,92\% $\pm$ 1,61 & 0,25\% & 59,88\% & 34,87 \\
+MLP, no memory & 50.56\% $\pm$ 2.23 & 0.25\% & 52.04\% & 224.89 \\
+Elman RNN & 81.08\% $\pm$ 19.31 & 54.75\% & 80.79\% & 148.85 \\
+RBFL, $\UM=1$ & 58.82\% $\pm$ 0.96 & 8.75\% & 64.94\% & 38.08 \\
+\textbf{RBFL, learned gate + memory} & \textbf{100.00\% $\pm$ 0.00} & \textbf{100.00\%} & \textbf{100.00\%} & 57.37 \\
+RBFL, learned gate, no memory & 54.92\% $\pm$ 1.61 & 0.25\% & 59.88\% & 34.87 \\
 \bottomrule
 \end{tabular}
 \end{fixedtable}
 
-\begin{fixedtable}{Tabla 4. Costo de inferencia temporal; bytes temporales como cota inferior.}
+\begin{fixedtable}{Table 4. Temporal inference cost; temporary bytes are a lower bound.}
 \begin{tabular}{lrrrr}
 \toprule
-Modelo & Modelo (B) & Temporal (B) & Total (B) & ns/paso \\
+Model & Model (B) & Temporary (B) & Total (B) & ns/step \\
 \midrule
-MLP sin memoria & 1544 & 128 & 1672 & 393,05 \\
-RNN de Elman & 1288 & 940 & 2228 & 276,51 \\
-RBFL, $\UM=1$ & 44 & 116 & 160 & 29,70 \\
-\textbf{RBFL, $\UM$ entrenable + feedback} & 44 & 116 & 160 & 31,88 \\
-RBFL, $\UM$ entrenable, sin feedback & 44 & 116 & 160 & 31,22 \\
+MLP, no memory & 1544 & 128 & 1672 & 393.05 \\
+Elman RNN & 1288 & 940 & 2228 & 276.51 \\
+RBFL, $\UM=1$ & 44 & 116 & 160 & 29.70 \\
+\textbf{RBFL, trainable $\UM$ + feedback} & 44 & 116 & 160 & 31.88 \\
+RBFL, trainable $\UM$, no feedback & 44 & 116 & 160 & 31.22 \\
 \bottomrule
 \end{tabular}
 \end{fixedtable}
 
-La variante ganadora mejora 18,92 puntos porcentuales sobre la media de la RNN en este test de paridad, pero la RNN presenta alta variación entre semillas. Frente a la misma RBFL sin persistencia, la diferencia es 45,08 puntos: la realimentación aporta una ventaja medible bajo este protocolo. La ablación que quita \texttt{FORGET} del control $\UM=1$ no alteró la accuracy en estas cinco semillas; tampoco lo hizo permitir $Q_0$ entrenable en esa vecindad. El detalle por semilla está en \texttt{results/ablation.csv}.
+The winning variant improves on the RNN mean by 18.92 percentage points on this parity test, although the RNN varies substantially across seeds. The difference from the same RBFL without persistence is 45.08 points: feedback provides a measurable advantage under this protocol. Removing \texttt{FORGET} from the $\UM=1$ control did not change accuracy across these five seeds; neither did allowing trainable $Q_0$ in that neighborhood. Per-seed details are in \texttt{results/ablation.csv}.
 
-\section{Discusión y límites}
-La tarea favorece una solución booleana compacta: una habilitación dependiente de la entrada puede realizar un toggle condicional de Q. Eso explica un mecanismo plausible, pero no demuestra que la arquitectura tenga ventaja en otros problemas de memoria. Se midieron cinco semillas y una sola regla temporal sintética; no se probaron secuencias ruidosas, datos reales ni una búsqueda exhaustiva de hiperparámetros. Las arquitecturas no comparten presupuesto de parámetros ni tiempo de entrenamiento: la comparación de costos caracteriza estas implementaciones concretas. La RNN tiene gradientes y mayor capacidad nominal, mientras que RBFL enfrenta una búsqueda discreta limitada a un cambio por iteración. Las cifras de memoria omiten gastos del asignador; las de tiempo dependen de la máquina y del código. El BFL histórico no tiene un estado temporal comparable y por ello no es un control de paridad con memoria.
+\section{Discussion and limitations}
+The task favors a compact Boolean solution: input-dependent gating can implement a conditional toggle of Q. This suggests a plausible mechanism, but does not establish an advantage for the architecture on other memory problems. We measured five seeds and one synthetic temporal rule; we did not test noisy sequences, real data, or an exhaustive hyperparameter search. The architectures do not share parameter or training-time budgets, so the cost comparison characterizes these particular implementations. The RNN has gradients and greater nominal capacity, while RBFL faces a discrete search limited to one change per iteration. Memory figures omit allocator overhead; timing depends on the machine and code. Historical BFL has no comparable temporal state and therefore is not a parity control with memory.
 
-\section{Resultados individuales y verificaciones}
-\begin{fixedtable}{Tabla 5. Exactitud por bit en longitudes nuevas, por semilla.}
+\section{Per-seed results and checks}
+\begin{fixedtable}{Table 5. Bit accuracy on unseen lengths by seed.}
 \begin{tabular}{crrr}
 \toprule
-Semilla & RBFL ganadora & RNN de Elman & RBFL sin memoria \\
+Seed & Winning RBFL & Elman RNN & RBFL, no memory \\
 \midrule
-1 & 100,00\% & 99,05\% & 57,35\% \\
-2 & 100,00\% & 54,96\% & 54,37\% \\
-3 & 100,00\% & 93,76\% & 52,46\% \\
-4 & 100,00\% & 97,35\% & 54,70\% \\
-5 & 100,00\% & 60,26\% & 55,70\% \\
+1 & 100.00\% & 99.05\% & 57.35\% \\
+2 & 100.00\% & 54.96\% & 54.37\% \\
+3 & 100.00\% & 93.76\% & 52.46\% \\
+4 & 100.00\% & 97.35\% & 54.70\% \\
+5 & 100.00\% & 60.26\% & 55.70\% \\
 \bottomrule
 \end{tabular}
 \end{fixedtable}
 
-Estos valores explican la elevada dispersión de la RNN: tres semillas superaron el 93\% y dos quedaron cerca del azar. La tabla no sustituye un estudio con más semillas y tareas. En las pruebas de implementación se comprobaron las cuatro filas de la tabla de verdad para ambos valores de Q, la actualización simultánea entre unidades, la retención con $\UM=0$, la persistencia temporal, el registro de las rutas A y B seleccionadas, y la igualdad $\CE=P\oplus Y$. Una prueba de entrenamiento verificó que una propuesta útil cambia parámetros y que ninguna modificación de costo positivo se acepta cuando el error ya es cero. Las 120 filas de la traza final cumplen $\mathrm{ERR}_{\mathrm{mejor}}\leq\mathrm{ERR}_{\mathrm{anterior}}$. El ejecutable de inferencia RBFL recibe únicamente las entradas: las etiquetas aparecen solo en la evaluación supervisada.
+These values explain the RNN's high dispersion: three seeds exceeded 93\%, while two stayed near chance. This table does not replace a study with more seeds and tasks. Implementation tests checked all four truth-table rows for both Q values, simultaneous updates across units, retention when $\UM=0$, temporal persistence, recording of the selected A and B routes, and the identity $\CE=P\oplus Y$. A training test verified that a useful proposal changes parameters and that no positive-cost edit is accepted when error is already zero. All 120 rows of the final trace satisfy $\mathrm{ERR}_{\mathrm{best}}\leq\mathrm{ERR}_{\mathrm{before}}$. The RBFL inference executable receives inputs only; labels appear only in supervised evaluation.
 
-\section{Reproducción}
-El código y los datos están en el directorio de investigación \texttt{research/rbfl\_vs\_ann/}. Allí, el comando de reproducción es:
+\section{Reproduction}
+The code and data are in the \texttt{research/rbfl\_vs\_ann/} research directory. Run:
 \begin{center}\texttt{bash scripts/reproduce.sh 5 20}\end{center}
-Este comando recompila los cuatro modelos, verifica RBFL y genera los CSV de resultados, resúmenes, ablaciones y trazas. El PDF se regenera con \texttt{bash scripts/build\_paper.sh}. Las etiquetas de variantes fueron aclaradas después de medir; las particiones inexistentes figuran como \texttt{NA} en los CSV, conservando todas las mediciones. El identificador de la variante ganadora es:
+This command recompiles the four models, checks RBFL, and generates the result, summary, ablation, and trace CSV files. Regenerate the PDF with \texttt{bash scripts/build\_paper.sh}. Variant labels were clarified after measurement; nonexistent splits appear as \texttt{NA} in the CSV files, with all measurements retained. The winning variant's identifier is:
 \begin{center}
 \texttt{rbfl\_used\_m\_trainable\_feedback}.
 \end{center}
